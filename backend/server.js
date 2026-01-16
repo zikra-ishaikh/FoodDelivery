@@ -49,6 +49,56 @@ app.post('/add-food', async (req, res) => {
     }
 });
 
+// --- THEME SCHEDULER SETUP ---
+
+// Create Table Script (Auto-run)
+const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS theme_schedules (
+        id SERIAL PRIMARY KEY,
+        theme_name VARCHAR(50) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+`;
+
+pool.query(createTableQuery)
+    .then(() => console.log("✅ Theme Schedules Table Ready"))
+    .catch(err => console.error("❌ Table Error", err));
+
+// 1. Schedule a Theme
+app.post('/schedule-theme', async (req, res) => {
+    const { themeName, startDate, endDate } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO theme_schedules (theme_name, start_date, end_date) VALUES ($1, $2, $3) RETURNING *',
+            [themeName, startDate, endDate]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database Error" });
+    }
+});
+
+// 2. Get Current Theme (Based on Date)
+app.get('/current-theme', async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT theme_name FROM theme_schedules WHERE CURRENT_DATE BETWEEN start_date AND end_date ORDER BY created_at DESC LIMIT 1"
+        );
+
+        if (result.rows.length > 0) {
+            res.json({ theme: result.rows[0].theme_name });
+        } else {
+            res.json({ theme: 'Default' });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database Error" });
+    }
+});
+
 // Place an order
 app.post('/order', async (req, res) => {
     const { foodId } = req.body;
