@@ -7,8 +7,6 @@ app.use(cors());
 app.use(express.json());
 
 // 1. DATABASE CONNECTION
-// ⚠️ IMPORTANT: Replace [YOUR-PASSWORD] with your real password!
-// Note: I removed '?sslmode=require' from the string to let the config object handle it.
 const connectionString = "postgresql://postgres.jdghhicyhoqdiqsuqyfn:Zikr%4023408786@aws-1-ap-south-1.pooler.supabase.com:6543/postgres";
 
 const pool = new Pool({
@@ -33,6 +31,21 @@ app.get('/foods', async (req, res) => {
     } catch (err) {
         console.error("Database Error:", err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Route to ADD new food (Used by Admin Panel)
+app.post('/add-food', async (req, res) => {
+    const { name, price, image } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO foods (name, price, image) VALUES ($1, $2, $3) RETURNING *',
+            [name, price, image]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database Error" });
     }
 });
 
