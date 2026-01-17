@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function AdminScreen() {
     const router = useRouter();
@@ -42,6 +43,31 @@ export default function AdminScreen() {
     };
 
     const [themeData, setThemeData] = useState({ themeName: 'Default', startDate: '', endDate: '' });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [activeDateField, setActiveDateField] = useState<'start' | 'end' | null>(null);
+
+    const getDateValue = (dateString: string) => {
+        if (!dateString) return new Date();
+        const d = new Date(dateString);
+        return isNaN(d.getTime()) ? new Date() : d;
+    };
+
+    const handleDateChange = (event: any, selectedDate?: Date) => {
+        setShowDatePicker(false);
+        if (selectedDate && activeDateField) {
+            const dateString = selectedDate.toISOString().split('T')[0];
+            setThemeData(prev => ({
+                ...prev,
+                [activeDateField === 'start' ? 'startDate' : 'endDate']: dateString
+            }));
+        }
+        setActiveDateField(null);
+    };
+
+    const openDatePicker = (field: 'start' | 'end') => {
+        setActiveDateField(field);
+        setShowDatePicker(true);
+    };
 
     const handleThemeSubmit = async () => {
         if (!themeData.startDate || !themeData.endDate) {
@@ -95,23 +121,40 @@ export default function AdminScreen() {
                 <View style={styles.rowInput}>
                     <View style={{ flex: 1, marginRight: 10 }}>
                         <Text style={styles.label}>Start Date</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="2024-10-20"
-                            value={themeData.startDate}
-                            onChangeText={(text) => setThemeData({ ...themeData, startDate: text })}
-                        />
+                        <TouchableOpacity onPress={() => openDatePicker('start')}>
+                            <View pointerEvents="none">
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="YYYY-MM-DD"
+                                    value={themeData.startDate}
+                                    editable={false}
+                                />
+                            </View>
+                        </TouchableOpacity>
                     </View>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.label}>End Date</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="2024-10-25"
-                            value={themeData.endDate}
-                            onChangeText={(text) => setThemeData({ ...themeData, endDate: text })}
-                        />
+                        <TouchableOpacity onPress={() => openDatePicker('end')}>
+                            <View pointerEvents="none">
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="YYYY-MM-DD"
+                                    value={themeData.endDate}
+                                    editable={false}
+                                />
+                            </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
+
+                {showDatePicker && (
+                    <DateTimePicker
+                        value={getDateValue(activeDateField === 'start' ? themeData.startDate : themeData.endDate)}
+                        mode="date"
+                        display="default"
+                        onChange={handleDateChange}
+                    />
+                )}
 
                 <TouchableOpacity style={[styles.button, { marginTop: 15, backgroundColor: '#10B981' }]} onPress={handleThemeSubmit}>
                     <Text style={styles.buttonText}>Save Schedule</Text>
